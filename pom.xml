@@ -85,7 +85,7 @@
         <blueprints.version>2.6.0</blueprints.version>
         <javac.src.version>1.6</javac.src.version>
         <javac.target.version>1.6</javac.target.version>
-        <orientdb.version>2.0-SNAPSHOT</orientdb.version>
+        <orientdb.version>2.0-M2</orientdb.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -168,13 +168,6 @@
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
             <version>5.14.1</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.orientechnologies</groupId>
-            <artifactId>orient-commons</artifactId>
-            <version>${orientdb.version}</version>
-            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -18,11 +18,14 @@
 
 package com.orientechnologies.orient.etl.loader;
 
+import java.util.List;
+
 import com.orientechnologies.orient.core.command.OBasicCommandContext;
 import com.orientechnologies.orient.core.command.OCommandContext;
 import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
+import com.orientechnologies.orient.core.db.record.OTrackedList;
 import com.orientechnologies.orient.core.exception.OConfigurationException;
 import com.orientechnologies.orient.core.exception.OSchemaException;
 import com.orientechnologies.orient.core.index.OIndex;
@@ -37,8 +40,6 @@ import com.tinkerpop.blueprints.impls.orient.OrientEdge;
 import com.tinkerpop.blueprints.impls.orient.OrientElement;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
-
-import java.util.List;
 
 /**
  * ETL Loader that saves record into OrientDB database.
@@ -60,7 +61,6 @@ public class OOrientDBLoader extends OAbstractLoader implements OLoader {
   protected long            batchCounter           = 0;
   protected DB_TYPE         dbType                 = DB_TYPE.DOCUMENT;
   protected boolean         wal                    = true;
-
   protected enum DB_TYPE {
     DOCUMENT, GRAPH
   }
@@ -223,16 +223,17 @@ public class OOrientDBLoader extends OAbstractLoader implements OLoader {
       dbAutoDropIfExists = (Boolean) iConfiguration.field("dbAutoDropIfExists");
     if (iConfiguration.containsField("dbAutoCreateProperties"))
       dbAutoCreateProperties = (Boolean) iConfiguration.field("dbAutoCreateProperties");
+    
 
     clusterName = iConfiguration.field("cluster");
     className = iConfiguration.field("class");
     indexes = iConfiguration.field("indexes");
-    classes = iConfiguration.field("classes");
+    classes = iConfiguration.field("classes");    
 
     switch (dbType) {
     case DOCUMENT:
       final ODatabaseDocumentTx documentDatabase = new ODatabaseDocumentTx(dbURL);
-      if (documentDatabase.exists() && dbAutoDropIfExists) {
+      if (dbAutoDropIfExists && documentDatabase.exists()) {
         log(OETLProcessor.LOG_LEVELS.INFO, "Dropping existent database '%s'...", dbURL);
         documentDatabase.open(dbUser, dbPassword);
         documentDatabase.drop();
@@ -320,16 +321,16 @@ public class OOrientDBLoader extends OAbstractLoader implements OLoader {
   protected void createProperty(final OClass cls, final String f, final Object fValue) {
     if (fValue != null) {
       final OType fType = OType.getTypeByClass(fValue.getClass());
-
+      
       try {
-        cls.createProperty(f, fType);
+        OProperty property = cls.createProperty(f, fType);
       } catch (OSchemaException e) {
       }
 
       log(OETLProcessor.LOG_LEVELS.DEBUG, "created property [%s.%s] of type [%s]", cls.getName(), f, fType);
     }
   }
-
+    
   protected synchronized ODatabaseDocumentTx init() {
     ODatabaseDocumentTx documentDatabase = pipeline.getDocumentDatabase();
     OrientBaseGraph graphDatabase;
@@ -360,7 +361,24 @@ public class OOrientDBLoader extends OAbstractLoader implements OLoader {
     if (classes != null) {
       for (ODocument cls : classes) {
         schemaClass = getOrCreateClass((String) cls.field("name"), (String) cls.field("extends"));
+        
+        Boolean absCls = cls.field("abstract");
+        if (absCls != null) {
+          schemaClass.setAbstract(absCls);
+        }
+        
         log(OETLProcessor.LOG_LEVELS.DEBUG, "%s: found %d %s in class '%s'", getName(), schemaClass.count(), getUnit(), className);
+        
+        OTrackedList<ODocument> fields = cls.field("fields");
+        if (fields != null) {
+          for (ODocument field: fields) {
+            OProperty property = schemaClass.createProperty((String) field.field("name"), OType.valueOf((String) field.field("type")));
+            String collate = field.field("collate");
+            if (collate != null) {
+              property.setCollate(collate);
+            }
+          }
+        }
       }
     }
 

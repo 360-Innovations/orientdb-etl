@@ -18,21 +18,6 @@
 
 package com.orientechnologies.orient.etl;
 
-import com.orientechnologies.common.io.OIOUtils;
-import com.orientechnologies.orient.core.OConstants;
-import com.orientechnologies.orient.core.Orient;
-import com.orientechnologies.orient.core.command.OBasicCommandContext;
-import com.orientechnologies.orient.core.exception.OConfigurationException;
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.serialization.serializer.OStringSerializerHelper;
-import com.orientechnologies.orient.etl.block.OBlock;
-import com.orientechnologies.orient.etl.extractor.OExtractor;
-import com.orientechnologies.orient.etl.loader.OLoader;
-import com.orientechnologies.orient.etl.source.OSource;
-import com.orientechnologies.orient.etl.transformer.OTransformer;
-import com.tinkerpop.blueprints.impls.orient.OrientEdge;
-import com.tinkerpop.blueprints.impls.orient.OrientVertex;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
@@ -43,6 +28,22 @@ import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+
+import com.orientechnologies.common.io.OIOUtils;
+import com.orientechnologies.orient.core.OConstants;
+import com.orientechnologies.orient.core.Orient;
+import com.orientechnologies.orient.core.command.OBasicCommandContext;
+import com.orientechnologies.orient.core.exception.OConfigurationException;
+import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.orientechnologies.orient.core.serialization.serializer.OStringSerializerHelper;
+import com.orientechnologies.orient.etl.block.OBlock;
+import com.orientechnologies.orient.etl.extractor.OExtractor;
+import com.orientechnologies.orient.etl.loader.OLoader;
+import com.orientechnologies.orient.etl.loader.OMemoryLoader;
+import com.orientechnologies.orient.etl.source.OSource;
+import com.orientechnologies.orient.etl.transformer.OTransformer;
+import com.tinkerpop.blueprints.impls.orient.OrientEdge;
+import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
 /**
  * ETL processor class.
@@ -168,7 +169,25 @@ public class OETLProcessor implements OETLComponent {
     }
   }
 
+  public static List<Object> executeSubETL(final String[] args) {
+    final OETLProcessor processor = createProcessor(args);
+    
+    if (!processor.loader.getName().equals("memory")) {
+      throw new OConfigurationException("Sub ETLs can only use the 'memory' loader");
+      
+    }
+      processor.execute();
+      
+      return ((OMemoryLoader) processor.loader).getLoadedObjects();
+  }
   public static void main(final String[] args) {
+    System.out.println("OrientDB etl v." + OConstants.getVersion() + " " + OConstants.ORIENT_URL);
+
+    final OETLProcessor processor = createProcessor(args);
+    processor.execute();
+  }
+  
+  private static OETLProcessor createProcessor(String[] args) {
     ODocument cfgGlobal = null;
     Collection<ODocument> cfgBegin = null;
     ODocument cfgSource = null;
@@ -177,7 +196,6 @@ public class OETLProcessor implements OETLComponent {
     ODocument cfgLoader = null;
     Collection<ODocument> cfgEnd = null;
 
-    System.out.println("OrientDB etl v." + OConstants.getVersion() + " " + OConstants.ORIENT_URL);
     if (args.length == 0) {
       System.out.println("Syntax error, missing configuration file.");
       System.out.println("Use: oetl.sh <json-file>");
@@ -221,8 +239,7 @@ public class OETLProcessor implements OETLComponent {
       }
     }
 
-    final OETLProcessor processor = new OETLProcessor(cfgBegin, cfgSource, cfgExtract, cfgTransformers, cfgLoader, cfgEnd, context);
-    processor.execute();
+    return new OETLProcessor(cfgBegin, cfgSource, cfgExtract, cfgTransformers, cfgLoader, cfgEnd, context);
   }
 
   protected static OBasicCommandContext createDefaultContext() {

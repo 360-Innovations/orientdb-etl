@@ -37,9 +37,10 @@ import java.util.Set;
  * Converts a JOIN in LINK
  */
 public class OLinkTransformer extends OAbstractLookupTransformer {
-  protected String joinValue;
-  protected String linkFieldName;
-  protected OType  linkFieldType;
+  protected String  joinValue;
+  protected String  linkFieldName;
+  protected OType   linkFieldType;
+  protected Boolean removeJoinField;
 
   @Override
   public ODocument getConfiguration() {
@@ -52,8 +53,8 @@ public class OLinkTransformer extends OAbstractLookupTransformer {
             + "{linkFieldName:{optional:false,description:'field name containing the link to set'}},"
             + "{linkFieldType:{optional:true,description:'field type containing the link to set. Use LINK for single link and LINKSET or LINKLIST for many'}},"
             + "{lookup:{optional:false,description:'<Class>.<property> or Query to execute'}},"
-            + "{unresolvedLinkAction:{optional:true,description:'action when a unresolved link is found',values:"
-            + stringArray2Json(ACTION.values()) + "}}]," + "input:['ODocument'],output:'ODocument'}");
+            + "{unresolvedLinkAction:{optional:true,description:'action when a unresolved link is found',values:" + stringArray2Json(ACTION.values())
+            + "}}]," + "input:['ODocument'],output:'ODocument'}");
   }
 
   @Override
@@ -64,6 +65,7 @@ public class OLinkTransformer extends OAbstractLookupTransformer {
     linkFieldName = iConfiguration.field("linkFieldName");
     if (iConfiguration.containsField("linkFieldType"))
       linkFieldType = OType.valueOf((String) iConfiguration.field("linkFieldType"));
+    removeJoinField = iConfiguration.field("removeJoinField");
   }
 
   @Override
@@ -160,6 +162,11 @@ public class OLinkTransformer extends OAbstractLookupTransformer {
 
     // SET THE TRANSFORMED FIELD BACK
     doc.field(linkFieldName, result);
+
+    // remove the original join field if specified
+    if (removeJoinField) {
+      ((ODocument) ((OIdentifiable) input).getRecord()).removeField(joinFieldName);
+    }
 
     log(OETLProcessor.LOG_LEVELS.DEBUG, "set %s=%s in document=%s", linkFieldName, result, input);
 

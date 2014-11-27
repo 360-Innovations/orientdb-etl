@@ -27,6 +27,7 @@ import com.orientechnologies.orient.etl.extractor.OExtractor;
 import com.orientechnologies.orient.etl.extractor.OJDBCExtractor;
 import com.orientechnologies.orient.etl.extractor.OJsonExtractor;
 import com.orientechnologies.orient.etl.extractor.ORowExtractor;
+import com.orientechnologies.orient.etl.loader.OMemoryLoader;
 import com.orientechnologies.orient.etl.loader.OLoader;
 import com.orientechnologies.orient.etl.loader.OOrientDBLoader;
 import com.orientechnologies.orient.etl.loader.OOutputLoader;
@@ -76,9 +77,12 @@ public class OETLComponentFactory {
     registerTransformer(OMergeTransformer.class);
     registerTransformer(OFlowTransformer.class);
     registerTransformer(OVertexTransformer.class);
+    registerTransformer(OETLTransformer.class);
+    registerTransformer(ORenameTransformer.class);
 
     registerLoader(OOrientDBLoader.class);
     registerLoader(OOutputLoader.class);
+    registerLoader(OMemoryLoader.class);
   }
 
   public OETLComponentFactory registerSource(final Class<? extends OSource> iComponent) {

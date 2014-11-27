@@ -22,21 +22,17 @@ import com.orientechnologies.orient.core.command.OBasicCommandContext;
 import com.orientechnologies.orient.core.db.record.OIdentifiable;
 import com.orientechnologies.orient.core.record.ORecord;
 import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.sql.filter.OSQLFilter;
 import com.orientechnologies.orient.etl.OETLProcessor;
 
-public class OFieldTransformer extends OAbstractTransformer {
-  protected String     fieldName;
-  protected String     expression;
-  protected boolean    setOperation = true;
-  protected OSQLFilter sqlFilter;
-  protected Object     valueDefinition;
+public class ORenameTransformer extends OAbstractTransformer {
+  protected ODocument rename;
 
   @Override
   public ODocument getConfiguration() {
     return new ODocument().fromJSON("{parameters:[" + getCommonConfigurationParameters() + ","
         + "{fieldName:{optional:false,description:'field name to apply the result'}},"
         + "{expression:{optional:true,description:'expression to evaluate. Mandatory with operation=set (default)'}}"
+        + "{renameTo:{optional:true,description:'the new name for the field'}}"
         + "{operation:{optional:false,description:'operation to execute against the field: set, remove. Default is set'}}" + "],"
         + "input:['ODocument'],output:'ODocument'}");
   }
@@ -44,58 +40,26 @@ public class OFieldTransformer extends OAbstractTransformer {
   @Override
   public void configure(OETLProcessor iProcessor, final ODocument iConfiguration, OBasicCommandContext iContext) {
     super.configure(iProcessor, iConfiguration, iContext);
-    fieldName = (String) resolve(iConfiguration.field("fieldName"));
-    expression = iConfiguration.field("expression");
-    valueDefinition = iConfiguration.field("value");
-    
-    if (expression != null) 
-      sqlFilter = new OSQLFilter(expression, context, null);
-    
-    if (iConfiguration.containsField("operation"))
-      setOperation = "set".equalsIgnoreCase((String) iConfiguration.field("operation"));
+
+    rename = iConfiguration;
   }
 
   @Override
   public String getName() {
-    return "field";
+    return "rename";
   }
 
   @Override
   public Object executeTransform(final Object input) {
-    Object value = valueDefinition;
-    
-    // Process ODocument value objects for ${} and $={}
-    if (valueDefinition instanceof ODocument) {
-      ODocument valueDoc = ((ODocument) valueDefinition).copy();
-      
-      for (String field : valueDoc.fieldNames()) {
-        valueDoc.field(field, resolve(valueDoc.field(field)));        
-      }
-      value = valueDoc;
-    }
-        
-    if (input instanceof OIdentifiable) {
+    if (rename != null && input instanceof OIdentifiable) {
       final ORecord rec = ((OIdentifiable) input).getRecord();
 
       if (rec instanceof ODocument) {
         final ODocument doc = (ODocument) rec;
 
-        if (setOperation) {
-          if (value != null) {
-            doc.field(fieldName, value);
-          } 
-          else {
-            final Object newValue = sqlFilter.evaluate(doc, null, context);
-
-            // SET THE TRANSFORMED FIELD BACK
-            doc.field(fieldName, newValue);
-
-            log(OETLProcessor.LOG_LEVELS.DEBUG, "set %s=%s in document=%s", fieldName, newValue, doc);
-          }
-        } else {
-          final Object prev = doc.removeField(fieldName);
-
-          log(OETLProcessor.LOG_LEVELS.DEBUG, "removed %s (value=%s) from document=%s", fieldName, prev, doc);
+        for (String fieldName : rename.fieldNames()) {
+          doc.field((String) rename.field(fieldName), doc.field(fieldName));
+          doc.removeField(fieldName);
         }
       }
     }
