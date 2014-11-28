@@ -69,7 +69,13 @@ public class OFieldTransformer extends OAbstractTransformer {
       ODocument valueDoc = ((ODocument) valueDefinition).copy();
       
       for (String field : valueDoc.fieldNames()) {
-        valueDoc.field(field, resolve(valueDoc.field(field)));        
+    	  if(field.equals("@@class")){
+    		  String className = (String) resolve(valueDoc.field("@@class"));
+    		  valueDoc.field("@class", className);
+    		  valueDoc.removeField("@@class");
+    	  } else {
+	        valueDoc.field(field, resolve(valueDoc.field(field)));        
+    	  }
       }
       value = valueDoc;
     }

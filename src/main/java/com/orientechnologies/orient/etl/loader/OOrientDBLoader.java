@@ -204,7 +204,7 @@ public class OOrientDBLoader extends OAbstractLoader implements OLoader {
     super.configure(iProcessor, iConfiguration, iContext);
 
     if (iConfiguration.containsField("dbURL"))
-      dbURL = iConfiguration.field("dbURL");
+      dbURL = (String) resolve(iConfiguration.field("dbURL"));
     if (iConfiguration.containsField("dbUser"))
       dbUser = iConfiguration.field("dbUser");
     if (iConfiguration.containsField("dbPassword"))
