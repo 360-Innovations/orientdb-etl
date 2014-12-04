@@ -129,6 +129,11 @@ public class OETLTransformer extends OAbstractLookupTransformer {
 				if (fieldValue != null) {
 					doc.field(fieldName, fieldValue, OType.EMBEDDED);
 				}
+			} else if (fieldType.equalsIgnoreCase(OType.EMBEDDEDSET.name())) {
+				fieldValue = createEmbeddedset(results);
+				if (fieldValue != null) {
+					doc.field(fieldName, fieldValue, OType.EMBEDDEDSET);
+				}
 			} else if (fieldType.equalsIgnoreCase(OType.LINKLIST.name())) {
 				fieldValue = createList(results);
 				if (fieldValue != null) {
@@ -139,7 +144,12 @@ public class OETLTransformer extends OAbstractLookupTransformer {
 
 		return input;
 	}
-	
+
+	private Object createEmbeddedset(List<Object> results) {
+		// todo error processing
+		return results;
+	}
+
 	private Object createList(List<Object> results) {
 		List<String> list = new ArrayList<String>();
 
