@@ -21,6 +21,7 @@ package com.orientechnologies.orient.etl.extractor;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -36,6 +37,7 @@ import com.orientechnologies.orient.core.command.OBasicCommandContext;
 import com.orientechnologies.orient.core.exception.OConfigurationException;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.orientechnologies.orient.core.record.impl.ORecordBytes;
 import com.orientechnologies.orient.etl.OETLProcessor;
 import com.orientechnologies.orient.etl.OExtractedItem;
 
@@ -235,16 +237,21 @@ public class OJDBCExtractor extends OAbstractExtractor {
 				// final OType fieldType = columnTypes != null ?
 				// columnTypes.get(i) : null;
 				Object fieldValue = rs.getObject(i + 1);
-				if(fieldValue != null && columnTypes.get(i) == OType.STRING){
-					if (fieldValue instanceof Clob) {
-						doc.field(columnNames.get(i), clobToString((Clob)fieldValue));
+				if(!(columnTypes.get(i) == OType.BINARY)){
+					if(fieldValue != null && columnTypes.get(i) == OType.STRING){
+						if (fieldValue instanceof Clob) {
+							doc.field(columnNames.get(i), clobToString((Clob)fieldValue));
+						} else {
+							doc.field(columnNames.get(i), fieldValue);
+						}	
 					} else {
-						doc.field(columnNames.get(i), fieldValue);
-					}	
+						
+					}
 				} else {
-					doc.field(columnNames.get(i), fieldValue);
+					Blob tmpBlob = (Blob)fieldValue;
+					ORecordBytes recordBytes = new ORecordBytes(tmpBlob.getBytes(new Long(1), (int)tmpBlob.length()));
+					doc.field(columnNames.get(i), recordBytes);
 				}
-				
 			}
 
 			return new OExtractedItem(current++, doc);

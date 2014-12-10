@@ -129,15 +129,25 @@ public class OETLTransformer extends OAbstractLookupTransformer {
 				if (fieldValue != null) {
 					doc.field(fieldName, fieldValue, OType.EMBEDDED);
 				}
-			} else if (fieldType.equalsIgnoreCase(OType.EMBEDDEDSET.name())) {
+			} else if (fieldType.equalsIgnoreCase(OType.EMBEDDEDSET.name()) || fieldType.equalsIgnoreCase(OType.EMBEDDEDLIST.name())) {
 				fieldValue = createEmbeddedset(results);
 				if (fieldValue != null) {
-					doc.field(fieldName, fieldValue, OType.EMBEDDEDSET);
+					if(fieldType.equalsIgnoreCase(OType.EMBEDDEDSET.name())){
+						doc.field(fieldName, fieldValue, OType.EMBEDDEDSET);	
+					} else {
+						doc.field(fieldName, fieldValue, OType.EMBEDDEDLIST);
+					}
+					
 				}
 			} else if (fieldType.equalsIgnoreCase(OType.LINKLIST.name())) {
-				fieldValue = createList(results);
+				fieldValue = createList(results,false);
 				if (fieldValue != null) {
-					doc.field(fieldName, fieldValue, OType.EMBEDDED);
+					doc.field(fieldName, fieldValue, OType.LINKLIST);
+				}
+			} else if (fieldType.equalsIgnoreCase(OType.LINKSET.name())) {
+				fieldValue = createList(results,true);
+				if (fieldValue != null) {
+					doc.field(fieldName, fieldValue, OType.LINKSET);
 				}
 			}
 		}
@@ -150,12 +160,18 @@ public class OETLTransformer extends OAbstractLookupTransformer {
 		return results;
 	}
 
-	private Object createList(List<Object> results) {
+	private Object createList(List<Object> results, boolean checkForDuplicate) {
 		List<String> list = new ArrayList<String>();
-
+		boolean addToList = true;
 		for (Object result : results) {
 			ODocument doc = (ODocument) result;
-			list.add((String) doc.field(valueFieldName));
+			if(checkForDuplicate){
+				addToList = !list.contains((String) doc.field(valueFieldName));
+			} 
+			
+			if(addToList){
+				list.add((String) doc.field(valueFieldName));
+			}
 		}
 
 		return list;
