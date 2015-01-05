@@ -237,20 +237,22 @@ public class OJDBCExtractor extends OAbstractExtractor {
 				// final OType fieldType = columnTypes != null ?
 				// columnTypes.get(i) : null;
 				Object fieldValue = rs.getObject(i + 1);
-				if(!(columnTypes.get(i) == OType.BINARY)){
-					if(fieldValue != null && columnTypes.get(i) == OType.STRING){
-						if (fieldValue instanceof Clob) {
-							doc.field(columnNames.get(i), clobToString((Clob)fieldValue));
-						} else {
+				if(fieldValue != null) {
+					if(!(columnTypes.get(i) == OType.BINARY)){
+						if(columnTypes.get(i) == OType.STRING){
+							if (fieldValue instanceof Clob) {
+								doc.field(columnNames.get(i), clobToString((Clob)fieldValue));
+							} else {
+								doc.field(columnNames.get(i), fieldValue);
+							}	
+						} else {	
 							doc.field(columnNames.get(i), fieldValue);
-						}	
+						}
 					} else {
-						
+						Blob tmpBlob = (Blob)fieldValue;
+						ORecordBytes recordBytes = new ORecordBytes(tmpBlob.getBytes(new Long(1), (int)tmpBlob.length()));
+						doc.field(columnNames.get(i), recordBytes);
 					}
-				} else {
-					Blob tmpBlob = (Blob)fieldValue;
-					ORecordBytes recordBytes = new ORecordBytes(tmpBlob.getBytes(new Long(1), (int)tmpBlob.length()));
-					doc.field(columnNames.get(i), recordBytes);
 				}
 			}
 
